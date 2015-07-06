@@ -106,7 +106,7 @@ instance Yesod App where
     -- The page to be redirected to when authentication is required.
     authRoute _ = Just $ AuthR LoginR
 
-    isAuthorized ControlR _ = isAdmin
+    isAuthorized (ControlR _) _ = isAdmin
     isAuthorized ListHiddenCompetitionsR _ = isAdmin
     isAuthorized _ _ = return Authorized
 

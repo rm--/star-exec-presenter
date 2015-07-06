@@ -1,97 +1,98 @@
-{-# language OverloadedStrings #-}
-
 module Handler.Control where
 
-
 import Import
-import StarExec.Registration 
-import StarExec.Connection (getLoginCredentials)
-import StarExec.Types (Login(..))
-import StarExec.Persist
-import StarExec.Commands (Job(..))
-import StarExec.STM (startWorker)
-import qualified StarExec.CompetitionResults as SCR
 
 import Yesod.Auth
 
-import Control.Monad ( guard, forever )
-import qualified StarExec.Types as S
-import qualified Data.Text as T
-import Data.Time.Clock
-
+import qualified StarExec.Registration as R
+import StarExec.Types
+import StarExec.CompetitionResults
 import Control.Job
+import StarExec.STM
 
+import qualified Data.Text as T
 import qualified Data.Map.Strict as M
-import Control.Concurrent.STM
-import Control.Concurrent (threadDelay)
-import Control.Exception.Base
-
+import Data.Time.Clock
+import Control.Monad ( guard )
 
 inputForm = renderTable $ JobControl
         <$> areq checkBoxField "is public" (Just False)
-        <*> areq (radioFieldList [("Competition (at least 2 participants)"::T.Text,SelectionCompetition),("Demonstration (1 participant)",SelectionDemonstration)]) "categories" (Just SelectionCompetition)
-        <*> areq (radioFieldList [("Termination.q"::T.Text,478),("TerminationTest.q",30597),("all.q",1),("all2.q",4)]) "queue" (Just 478)
-        <*> areq (radioFieldList [("autotest":: T.Text, 52915)]) "space" (Just 52915)
+        <*> areq (radioFieldList
+                  [("Competition (at least 2 participants)"::T.Text,SelectionCompetition)
+                  ,("Demonstration (exactly 1 participant)",SelectionDemonstration)
+                  ,("Everything (>= 1 participant)",SelectionAll)
+                  ]) "categories" (Just SelectionCompetition)
+        <*> areq (radioFieldList
+                  [ ("Termination.q"::T.Text,36291)
+                  -- , ("TerminationTest.q",30597)
+                  , ("all.q",1)
+                  , ("all2.q",4)
+                  ]) "queue" (Just 36291)
+        <*> areq (radioFieldList [("autotest":: T.Text, 99354)]) "space" (Just 99354)
         <*> areq (radioFieldList [("60"::T.Text, 60),("300", 300), ("900", 900)]) "wallclock_timeout" (Just 60)
         <*> areq (radioFieldList [("1", 1), ("10"::T.Text,10), ("25", 25), ("100", 100)]) 
-                 "family_lower_bound (selection parameter a)" (Just 10)
+                 "family_lower_bound (selection parameter a)" (Just 1)
         <*> areq (radioFieldList [("1", 1), ("10"::T.Text,10), ("25", 25), ("100", 100),("250",250),("1000",1000)]) 
-                 "family_upper_bound (selection parameter b)" (Just 100)
+                 "family_upper_bound (selection parameter b)" (Just 1)
         <*> areq (radioFieldList [("0.1", 0.1), ("0.3"::T.Text,0.3), ("0.5", 0.5), ("1.0", 1.0)]) 
-                 "family_factor (selection parameter c)" (Just 0.5)
+                 "family_factor (selection parameter c)" (Just 0.1)
         <*> formToAForm ( do 
             e <- askParams 
             return ( FormSuccess $ maybe M.empty id e, [] ) )
 
+benches :: Monad m => m R.Benchmark_Source -> m Int
+benches bs = do R.Bench b <- bs ; return b
 
-benches bs = do Bench b <- bs ; return b
-alls bs = do All b <- bs ; return b
-hierarchies bs = do Hierarchy b <- bs ; return b
+alls :: Monad m => m R.Benchmark_Source -> m Int
+alls bs = do R.All b <- bs ; return b
 
-getControlR :: Handler Html
-getControlR = do
-    maid <- maybeAuthId
-    (widget, enctype) <- generateFormPost inputForm
-    let comp = the_competition
-    defaultLayout $(widgetFile "control")
+hierarchies :: Monad m => m R.Benchmark_Source -> m Int
+hierarchies bs = do R.Hierarchy b <- bs ; return b
 
-postControlR :: Handler Html
-postControlR = do
-    maid <- maybeAuthId
-    ((result,widget), enctype) <- runFormPost inputForm
+getControlR :: Year -> Handler Html
+getControlR year = do
+  maid <- maybeAuthId
+  (widget, enctype) <- generateFormPost inputForm
+  let comp = R.the_competition year
+  defaultLayout $(widgetFile "control")
 
-    let comp = the_competition
-        public = case result of
-                  FormSuccess input -> isPublic input
+postControlR :: Year -> Handler Html
+postControlR year = do
+  maid <- maybeAuthId
+  ((result, widget), enctype) <- runFormPost inputForm
+
+  let comp = R.the_competition year
+      public = case result of 
+                  FormSuccess input-> isPublic input
                   _ -> False
-    mc <- case result of
-            FormSuccess input -> do
-                    Just [con] <- return $ M.lookup "control" $ env input
-                    startjobs input con 
-            _ -> return Nothing
-    mKey <- case mc of 
-              Nothing -> return Nothing
-              Just c -> do
-                  now <- liftIO getCurrentTime
-                  let competition = ( timed now c ) 
-                  key <- runDB $ insert $ CompetitionInfo competition now public
-                  startWorker competition
-                  return $ Just key
-    defaultLayout $ do
-        [whamlet|
-          <h2>Result of previous command
-          $maybe key <- mKey
-            jobs started, <a href=@{CompetitionR key}>output</a>
-          $nothing
-            could not start jobs
-        |] 
-        $(widgetFile "control")
+  mc <- case result of
+          FormSuccess input -> do
+            Just [con] <- return $ M.lookup "control" $ env input
+            startjobs year input con
+          _ -> return Nothing
+  mKey <- case mc of
+            Nothing -> return Nothing
+            Just c -> do
+              now <- liftIO getCurrentTime
+              let competition = ( timed now c )
+              key <- runDB $ insert $ CompetitionInfo competition now public
+              startWorker competition
+              return $ Just key
+  defaultLayout $ do
+    [whamlet|
+      <h2>Result of previous command
+      $maybe key <- mKey
+        jobs started, <a href=@{CompetitionR key}>output</a>
+      $nothing
+        could not start jobs
+    |]
+    $(widgetFile "control")
 
-startjobs :: JobControl -> Text -> Handler (Maybe S.Competition)
-startjobs input con = 
-      checkPrefix "cat:"  con (startCat input)
-    $ checkPrefix "mc:" con (startMC input)
-    $ checkPrefix "comp:" con (startComp input)
+startjobs :: Year -> JobControl -> Text -> Handler (Maybe Competition)
+startjobs year input con = 
+      checkPrefix "cat:"  con (startCat year input)
+    $ checkPrefix "mc:" con (startMC year input)
+    $ checkPrefix "comp:" con (startComp year input)
     $ return Nothing
 
 checkPrefix :: T.Text -> T.Text -> ( T.Text -> a ) -> a ->  a
@@ -99,54 +100,62 @@ checkPrefix s con action next =
     let (pre, post) = T.splitAt (T.length s) con
     in  if pre == s then action post else next
 
+select :: JobControl -> R.Competition R.Catinfo -> R.Competition R.Catinfo
 select input comp = case selection input of
+    SelectionAll -> 
+        comp { R.metacategories = map ( \ mc -> mc { R.categories = R.all_categories mc } ) 
+                              $ R.metacategories comp }
     SelectionCompetition -> 
-        comp { metacategories = map ( \ mc -> mc { categories = full_categories mc } ) 
-                              $ metacategories comp }
+        comp { R.metacategories = map ( \ mc -> mc { R.categories = R.full_categories mc } ) 
+                              $ R.metacategories comp }
     SelectionDemonstration -> 
-        comp { metacategories = map ( \ mc -> mc { categories = demonstration_categories mc } ) 
-                              $ metacategories comp }
+        comp { R.metacategories = map ( \ mc -> mc { R.categories = R.demonstration_categories mc } ) 
+                              $ R.metacategories comp }
 
-startComp input t = do
-    comp_with_jobs <- pushcomp input $ select input the_competition
-    let S.Competition name mcs = convertComp comp_with_jobs 
-        m = params input t 
-        c = S.Competition m mcs
-    return $ Just c
-
-startMC input t = do
-    let mcs = do 
-            mc <- metacategories $ select input the_competition
-            guard $ metaCategoryName mc == t
-            return mc
-    case mcs of
-        [ mc ] -> do
-            mc_with_jobs <- pushmetacat input mc
-            let m = params input t
-                c = S.Competition m [ convertMC mc_with_jobs]
-            return $ Just c
-        _ -> return Nothing
-
-startCat input t = do
+startCat :: Year -> JobControl -> Name -> Handler (Maybe Competition)
+startCat year input t = do
     let cats = do 
-            mc <- metacategories $ select input the_competition
-            c <- categories mc
-            guard $ categoryName c == t
+            mc <- R.metacategories $ select input $ R.the_competition year
+            c <- R.categories mc
+            guard $ R.categoryName c == t
             return c
     case cats of
         [ cat ] -> do
             cat_with_jobs <- pushcat input cat    
             let m = params input t
-                c = S.Competition m [ S.MetaCategory (metaToName m) [ convertC cat_with_jobs]]
+                c = Competition m [ MetaCategory (metaToName m) [ convertC cat_with_jobs]]
             return $ Just c
         _ -> return Nothing
 
-params :: JobControl -> Text -> S.CompetitionMeta
-params conf t = S.CompetitionMeta
-  { S.getMetaName = T.append t $ case selection conf of
+startMC :: Year -> JobControl -> Name -> Handler (Maybe Competition)
+startMC year input t = do
+    let mcs = do 
+            mc <- R.metacategories $ select input $ R.the_competition year
+            guard $ R.metaCategoryName mc == t
+            return mc
+    case mcs of
+        [ mc ] -> do
+            mc_with_jobs <- pushmetacat input mc
+            let m = params input t
+                c = Competition m [ convertMC mc_with_jobs]
+            return $ Just c
+        _ -> return Nothing
+
+startComp :: Year -> JobControl -> Text -> Handler (Maybe Competition)
+startComp year input t = do
+    comp_with_jobs <- pushcomp input $ select input $ R.the_competition year
+    let Competition name mcs = convertComp comp_with_jobs 
+        m = params input t 
+        c = Competition m mcs
+    return $ Just c
+
+params :: JobControl -> Text -> CompetitionMeta
+params conf t = CompetitionMeta
+  { getMetaName = T.append t $ case selection conf of
         SelectionCompetition -> T.empty
         SelectionDemonstration -> " (Demonstration)"
-  , S.getMetaDescription =
+        SelectionAll -> " (Competition + Demonstration)"
+  , getMetaDescription =
       T.unwords [ "wc", "=", T.pack $ show $ wallclock conf
                 , "a", "=", T.pack $ show $ family_lower_bound conf
                 , "b", "=", T.pack $ show $ family_upper_bound conf
@@ -154,9 +163,8 @@ params conf t = S.CompetitionMeta
                 ]
   }
 
-metaToName :: S.CompetitionMeta -> S.Name
-metaToName meta = 
-    S.getMetaName meta -- `T.append` " | " `T.append` S.getMetaDescription meta
-  
+metaToName :: CompetitionMeta -> Name
+metaToName meta = getMetaName meta
+
 
 

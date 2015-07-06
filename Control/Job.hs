@@ -21,7 +21,7 @@ import Data.Hashable
 import Control.Applicative ((<$>))
 import Data.List ( sort )
 
-data Selection = SelectionCompetition | SelectionDemonstration 
+data Selection = SelectionCompetition | SelectionDemonstration | SelectionAll
     deriving (Eq, Ord, Read, Show)
 
 data JobControl = JobControl

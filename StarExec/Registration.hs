@@ -5,7 +5,11 @@
 module StarExec.Registration
 
 ( the_competition
-, full_categories, demonstration_categories, real_participants
+, full_categories
+, all_categories
+, demonstration_categories
+, real_participants
+
 , Competition (..)
 , MetaCategory (..)
 , Category (..)
@@ -16,7 +20,8 @@ module StarExec.Registration
        
 where
 
-import StarExec.Types ( Name, CompetitionMeta(..) )
+import StarExec.Types (Year (..), Name(..))
+
 import qualified Data.Text as T
 
 import Prelude 
@@ -48,12 +53,19 @@ data MetaCategory a =
                   }
     deriving ( Generic )
 
+all_categories :: MetaCategory Catinfo -> [Category Catinfo]
+all_categories mc = 
+    filter ( \ c -> length (real_participants c) >= 1 ) $  categories mc
+    
+full_categories :: MetaCategory Catinfo -> [Category Catinfo]
 full_categories mc = 
     filter ( \ c -> length (real_participants c) >= 2 ) $  categories mc
 
+demonstration_categories :: MetaCategory Catinfo -> [Category Catinfo]
 demonstration_categories mc =
     filter ( \ c -> length (real_participants c) == 1 ) $  categories mc
 
+real_participants :: Category Catinfo -> [Participant]
 real_participants c = 
     filter ( isJust . solver_config ) $ participants $ contents c
 
@@ -92,18 +104,181 @@ data Participant =
 standard :: Name -> [Benchmark_Source] -> [Participant] -> Category Catinfo
 standard n bs ps = Category {  categoryName = n , contents = 
     Catinfo { postproc = 163 , benchmarks = bs , participants = ps } }
+
+standard2015 :: Name -> [Benchmark_Source] -> [Participant] -> Category Catinfo
+standard2015 n bs ps = Category {  categoryName = n , contents = 
+    Catinfo { postproc = 163 , benchmarks = bs , participants = ps } }
+
 certified :: Name -> [Benchmark_Source] -> [Participant] -> Category Catinfo
 certified n bs ps = Category { categoryName = n, contents = 
     Catinfo { postproc = 172 , benchmarks = bs , participants = ps } }
 
+certified2015 :: Name -> [Benchmark_Source] -> [Participant] -> Category Catinfo
+certified2015 n bs ps = Category { categoryName = n, contents = 
+    Catinfo { postproc = 209 , benchmarks = bs , participants = ps } }
+
+trss :: [Benchmark_Source]
 trss = [ Hierarchy 56849 ]
+
+srss :: [Benchmark_Source]
 srss = [ Hierarchy 56810 ]
 
+mixed_rel_srs :: Benchmark_Source
 mixed_rel_srs = Hierarchy 56805
+
+mixed_rel_trs :: Benchmark_Source
 mixed_rel_trs = Hierarchy 56846
 
+the_competition year = case year of
+  E -> experiment2015
+  Y2015 -> tc2015
+  Y2014 -> tc2014
 
-the_competition = experiment2015
+tc2015 :: Registration
+tc2015 = Competition  "Termination Competition 2015"
+   [ MetaCategory "Termination of Term Rewriting (and Transition Systems)"
+       [ standard "TRS Standard"  trss
+           [ Participant "TTT2" ( Just ( 1342, 1950 ))
+           , Participant "NaTT" ( Just ( 3430, 22689 ))
+           , Participant "AProVE" ( Just ( 3342, 22449 ) )
+           , Participant "Wanda" ( Just (1542, 2389))
+           , Participant "muterm" ( Just (1388, 2059))
+           , Participant "matchbox" ( Just ( 2536, 17911 ))
+           , Participant "AutoNon"  Nothing -- ( Just ( 3354, 0 ) )
+           ]
+       , standard "SRS Standard"  srss
+           [ Participant "TTT2" ( Just ( 1342, 1950 ))
+           , Participant "NaTT" ( Just ( 3430, 22691 ))
+           , Participant "AProVE" ( Just ( 3342, 22449  ) )
+           , Participant "muterm" ( Just (1388, 2059))
+           , Participant "matchbox" ( Just ( 2536, 17916 ))
+           , Participant "AutoNon"  Nothing
+           ]
+       , standard "Cycles" srss
+           [ Participant "cycsrs" ( Just ( 3338, 22415) )
+           , Participant "matchbox" Nothing
+           ]
+       , standard "TRS Relative"  [ mixed_rel_trs ]
+           [ Participant "TTT2" ( Just ( 1342, 1950 ))
+           , Participant "AProVE" ( Just ( 3342, 22449  ) )
+           , Participant "NaTT" ( Just ( 3430, 22690 ))
+           ]
+       , standard "SRS Relative"  [ mixed_rel_srs ]
+           [ Participant "TTT2" ( Just ( 1342, 1950 ))
+           , Participant "AProVE" ( Just ( 3342, 22449  ) )
+           , Participant "NaTT" ( Just ( 3430, 22690 ))
+           ]
+      , certified "TRS Standard certified"  trss
+           [ Participant "TTT2"  ( Just ( 1342, 1951 ))
+           , Participant "AProVE" ( Just ( 3342, 22444  ) )
+           ]
+      , certified "SRS Standard certified"  srss
+           [ Participant "TTT2"  ( Just ( 1342, 1951 ))
+           , Participant "AProVE" ( Just ( 3342, 22444  ) )
+           ]
+      , certified "TRS Relative certified"  [ mixed_rel_trs ]
+           [ Participant "TTT2"  ( Just ( 1342, 1951 ))
+           , Participant "AProVE" ( Just ( 3342, 22444 ) )
+           ]
+      , certified "SRS Relative certified"  [ mixed_rel_srs ]
+           [ Participant "TTT2"  ( Just ( 1342, 1951 ))
+           , Participant "AProVE" ( Just ( 3342, 22444  ) )
+           ]
+      , standard "TRS Equational"  [ Hierarchy 56831  ]
+           [ Participant "AProVE" ( Just ( 3342, 22449  ) )
+           , Participant "muterm" ( Just (1388, 2059))
+           ]
+      , standard "TRS Conditional"  [ Hierarchy 56824 ]
+           [ Participant "AProVE" ( Just ( 3342, 22449  ) )
+           , Participant "muterm" ( Just (1388, 2059))
+           ]
+      , standard "TRS Context Sensitive"  [ Hierarchy 56827 ]
+           [ Participant "AProVE" ( Just ( 3342, 22449  ) )
+           , Participant "muterm" ( Just (1388, 2059))
+           ]
+      , standard "TRS Innermost"  [ Hierarchy 56836 ]
+           [ Participant "AProVE" ( Just ( 3342, 22449  ) )
+           , Participant "muterm" ( Just (1388, 2059))
+           ]
+      , standard "TRS Outermost"  [ Hierarchy 56842 ]
+           [ Participant "AProVE" ( Just ( 3342, 22449 ) )
+           ]
+      , certified "TRS Innermost certified"  [ Hierarchy 56836 ]
+           [ Participant "AProVE" ( Just ( 3342, 22444  ) )
+           ]
+      , certified "TRS Outermost certified"  [ Hierarchy 56842  ]
+           [ Participant "AProVE" ( Just ( 3342, 22444  ) )
+           ]
+      , standard "Higher-Order rewriting (union beta)"  
+           [ Hierarchy 56698 ]
+           [ Participant "Wanda" ( Just (1542, 2390))
+           ]
+     , standard "Integer Transition Systems"  [ Hierarchy 56706 ]
+           [ Participant "T2" ( Just ( 1739, 2751 ))
+           , Participant "AProVE" ( Just ( 3342, 22446 ))
+           , Participant "Ctrl" ( Just (1541, 2387))
+           , Participant "HipTNT+" (Just (3461, 22970))
+           ]
+     , standard "Integer TRS"  [ Hierarchy 56704  ]
+           [ Participant "AProVE" ( Just ( 3342, 22447 ) )
+           , Participant "Ctrl" ( Just (1541, 2388))
+           ]
+     ]
+   , MetaCategory "Complexity Analysis of Term Rewriting"
+     [ standard "Derivational Complexity - Full Rewriting"  [ Hierarchy 56613 ]
+           [ Participant "TCT2" ( Just (3402, 22626))
+           , Participant "TCT3" ( Just (3409, 22635))
+           , Participant "matchbox" ( Just ( 2536, 17921 ))
+           ]
+     , standard "Runtime Complexity - Full Rewriting"  [ Hierarchy 56748 ]
+           [ Participant "TCT2" ( Just (3402, 22621))
+           , Participant "TCT3" ( Just (3409, 22628))
+           , Participant "AProVE" ( Just ( 3342, 22440 ) )
+           ]
+     , standard "Runtime Complexity - Innermost Rewriting"  [ Hierarchy 56775 ]
+           [ Participant "TCT2" ( Just (3402, 22620))
+           , Participant "TCT3" ( Just (3409, 22630))
+           , Participant "AProVE" ( Just ( 3342, 22443 ) )
+           ]
+     , certified "Derivational Complexity - Full Rewriting certified" [ Hierarchy 56613 ]
+           [ Participant "TCT2" ( Just (3402, 22626))
+           , Participant "TCT3" ( Just (3409, 22631))
+           ]
+     , certified "Runtime Complexity - Full Rewriting certified"   [ Hierarchy 56748 ]
+           [ Participant "TCT2" ( Just (3402, 22626))
+           , Participant "TCT3" ( Just (3409, 22633))
+           ]
+     , certified "Runtime Complexity - Innermost Rewriting certified"  [ Hierarchy 56775 ]
+           [ Participant "AProVE" ( Just ( 3342, 22444 ) )
+           , Participant "TCT2" ( Just (3402, 22626))
+           , Participant "TCT3" ( Just (3409, 22636))
+           ]
+     ]
+   , MetaCategory "Termination of Programming Languages"
+     [ standard "C"  [ Hierarchy 56607 ]
+           [ Participant "AProVE" ( Just ( 3342, 22448 ) ) -- ?
+           , Participant "T2" ( Just ( 1739, 2751 )) -- ?
+           , Participant "Ultimate Buchi Automizer" (Just (3458, 22965))
+           ]
+     , standard "C Integer Programs" [ ] -- TODO: need benchmarks
+           [ Participant "AProVE" ( Just ( 3342, 22448 ) )
+           , Participant "Termite" Nothing
+           , Participant "Ultimate Buchi Automizer" (Just (3458, 22965))
+           , Participant "HipTNT+" (Just (3461, 22970))
+           ]
+     , standard "Java Bytecode"  [ Hierarchy 56709, Hierarchy 56721 ]
+           [ Participant "AProVE" ( Just ( 3342, 22450  ) )
+           , Participant "Ultimate Buchi Automizer" (Just (3458,22965) )
+           ]
+     , standard "Logic Programming"  [ Hierarchy 56728, Hierarchy 56739, Hierarchy 56744 ]
+           [ Participant "AProVE" ( Just ( 3342, 22445 ) )
+           ]
+     , standard "Functional Programming"  [ Hierarchy 56695 ]
+           [ Participant "AProVE" ( Just ( 3342, 22441  ) )
+           ]
+     ]
+   ]
+
 
 experiment2015 :: Registration
 experiment2015 = Competition "Experiments for 2015"
@@ -275,6 +450,7 @@ tc2014 = Competition "Termination Competition 2014"
 
 class Input t where input :: Parser t
 
+lexer :: TokenParser st
 lexer = haskell
 
 instance Input Int where input = fromIntegral <$> T.integer lexer
@@ -331,10 +507,13 @@ instance Output Catinfo where
 instance Output Benchmark_Source where
     output s = case s of
         Bench { bench = i } -> "Bench" <+> output i
-        All { space = s } -> "All" <+> output s
-        Hierarchy { space = s } -> "Hierarchy" <+> output s
+        All { space = s' } -> "All" <+> output s'
+        Hierarchy { space = s' } -> "Hierarchy" <+> output s'
 
+(<#>) :: Doc -> Doc -> Doc
 p <#> q = fillBreak 4 p <+> q
+
+showp :: Output a => a -> String
 showp = ( \ d -> displayS d "" ) . renderPretty 1.0 80 . output
 
 instance Output a => Show ( Competition a) where show = showp

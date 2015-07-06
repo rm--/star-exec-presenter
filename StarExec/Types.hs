@@ -108,6 +108,17 @@ all_in_hierarchy s =
     benchmarks s ++ (children s >>= all_in_hierarchy)
 
 
+-- | this is for managing registrations (which are in the source) FIXME
+data Year = Y2014 | Y2015 | E
+  deriving (Show, Eq, Read)
+
+instance PathPiece Year where
+  toPathPiece year = T.pack $ show year
+  fromPathPiece t = case reads (T.unpack t) of
+    [(y, "")] -> return y
+    _ -> Nothing
+
+
 {-
 -}
 data SolverResult = YES (Maybe Int) | NO | CERTIFIED | MAYBE | ERROR | OTHER
