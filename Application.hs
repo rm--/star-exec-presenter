@@ -78,7 +78,7 @@ import qualified Data.Map.Strict as M
 import Control.Concurrent.STM
 import Presenter.StarExec.Connection (initial_login)
 import Presenter.DOI
-
+import FCA.Benchmark
 -- import Control.Concurrent.SSem
 import qualified Control.Concurrent.FairRWLock as Lock
 
@@ -147,8 +147,10 @@ makeFoundation conf = do
     -- resolver
     doiS <- makeDOI_for_2014_2015_extra
 
+    let benchmarkInsertion = insertLatestBenchmarks
+
     let logger = Yesod.Core.Types.Logger loggerSet' getter
-        foundation = App conf s p manager dbconf logger session crCache dbS conS doiS
+        foundation = App conf s p manager dbconf logger session crCache dbS conS doiS benchmarkInsertion
 
     -- Perform database migration using our application's logging settings.
     runLoggingT

@@ -3,6 +3,8 @@ module FCA.Helpers where
 import Import
 
 import Data.Maybe
+import           Data.Map.Strict (Map)
+import qualified Data.Map.Strict as M
 import qualified Data.Set as Set
 import Data.Text as T (append, pack, replace, unpack)
 import Text.Regex.TDFA
@@ -38,3 +40,6 @@ safeGetIndex :: [a] -> Int -> Maybe a
 safeGetIndex xs k = case drop k xs of
                     x:_ -> Just x
                     [] -> Nothing
+
+-- invertMap :: (Ord a, Ord b) => Map a b -> Map a b
+invertMap m = M.fromList $ map (\(k,v) -> (v,k)) $ M.assocs m

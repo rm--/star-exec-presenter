@@ -20,6 +20,7 @@ import Text.Lucius (luciusFile)
 import Yesod.Form.Bootstrap3
 import Data.List (sortOn)
 
+
 data AttributeChoices = AttributeChoices
   { chosenSolver :: [Attribute]
   , chosenResults :: Maybe [Attribute]

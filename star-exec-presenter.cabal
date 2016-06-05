@@ -20,6 +20,7 @@ library
                      Settings.StaticFiles
                      Settings.Development
                      FCA.Basic
+                     FCA.Benchmark
                      FCA.DotGraph
                      FCA.Helpers
                      FCA.StarExec
@@ -201,6 +202,8 @@ library
                  , process
                  , regex-tdfa
                  , begriff
+                 , tpdb
+                 , filepath
 
 executable         star-exec-presenter
     if flag(library-only)

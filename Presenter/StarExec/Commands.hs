@@ -4,7 +4,8 @@
 -}
 
 module Presenter.StarExec.Commands
-  ( getJobResults
+  ( defaultDate
+  , getJobResults
   , getJobPairInfo
   , getJobInfo
   , getBenchmarkInfo
@@ -62,6 +63,9 @@ defaultDate :: UTCTime
 defaultDate = UTCTime
   (fromGregorian 1970 1 1)
   (secondsToDiffTime 0)
+
+defaultNumberRules :: Int
+defaultNumberRules = 0
 
 (+>) :: BSC.ByteString -> BSC.ByteString -> BSC.ByteString
 (+>) = BS.append
@@ -146,6 +150,7 @@ constructBenchmarkInfo _benchmarkId title tds =
   let baseBenchmarkInfo = BenchmarkInfo _benchmarkId
                                         title
                                         ""
+                                        defaultNumberRules
                                         defaultDate
       parseTDs info xs =
         case xs of

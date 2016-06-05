@@ -54,6 +54,7 @@ data App = App
     , dbSem :: Lock.RWLock
     , conSem :: Lock.RWLock
     , doiService :: DOIService
+    , insertBenchmarks :: HandlerT App IO [Key BenchmarkInfo]
     }
 
 instance HasHttpManager App where
@@ -95,6 +96,8 @@ instance Yesod App where
         -- default-layout-wrapper is the entire page. Since the final
         -- value passed to hamletToRepHtml cannot be a widget, this allows
         -- you to use normal widget features in default-layout.
+
+        insertedBenchmarks <- insertBenchmarks master
 
         -- navigation bar elements
         let menuElements = [MenuEntry ("Home", HomeR)
@@ -165,6 +168,7 @@ instance Yesod App where
         development || level == LevelWarn || level == LevelError
 
     makeLogger = return . appLogger
+
 
 isAdmin :: YesodAuth master => HandlerT master IO AuthResult
 isAdmin = do

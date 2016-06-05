@@ -107,7 +107,7 @@ SolverInfo
     description Text
     lastUpdate UTCTime default=now()
     deriving Eq Ord Read Show
-    
+
 StarExecConfigInfo
     starExecId Int
     UniqueStarExecConfigInfo starExecId
@@ -145,6 +145,7 @@ BenchmarkInfo
     UniqueBenchmarkInfo starExecId
     name Text
     type Text
+    numberRules Int
     lastUpdate UTCTime default=now()
     deriving Eq Ord Read Show
 
@@ -195,7 +196,7 @@ PostProcInfo
 --     name Text
 --     institution Text
 --     mail Text
--- 
+--
 -- SpaceInfo
 --     starExecId Int
 --     UniqueSpaceInfo starExecId

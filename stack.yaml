@@ -11,7 +11,8 @@ packages:
     commit: 39c96629fbf6b5fef18277ecfa3bfe1ac9c791f6
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
-extra-deps: []
+extra-deps:
+- tpdb-1.2.0
 
 # Override default flag values for local packages and extra-deps
 flags: {}
