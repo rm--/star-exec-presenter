@@ -26,6 +26,7 @@ data AttributeChoices = AttributeChoices
   , chosenResults :: Maybe [Attribute]
   , chosenCpu :: Maybe [Attribute]
   , chosenConfig :: Maybe [Attribute]
+  , chosenRules :: Maybe [Attribute]
   }
   deriving (Eq, Show)
 
@@ -45,7 +46,7 @@ getConceptsR cid compls@(Ids complIds) jids@(JobIds ids) = do
         FormSuccess ca -> do
           let chosenAttributes = filter (not . null) .
                                    (++) [chosenSolver ca] $
-                                   map (\f -> maybeListId .f $ ca) [chosenResults, chosenCpu, chosenConfig]
+                                   map (\f -> maybeListId .f $ ca) [chosenResults, chosenCpu, chosenConfig, chosenRules]
           case filterPairsByAttributes attributePairs' $ attributeGroupCombinations chosenAttributes of
             Nothing -> Nothing
             Just pairs -> 
@@ -112,6 +113,7 @@ attributeForm formOptions = AttributeChoices
   <*> aopt (multiSelectFieldList . fromJust $ M.lookup "Solver config" formOptions) (bfsFormControl MsgSolverConfigs "SolverConfigs") Nothing
   <*> aopt (multiSelectFieldList . fromJust $ M.lookup "Result" formOptions) (bfsFormControl MsgResults "Results") Nothing
   <*> aopt (multiSelectFieldList . fromJust $ M.lookup "CPU" formOptions) (bfsFormControl MsgCPUTimes "CPUTimes") Nothing
+  <*> aopt (multiSelectFieldList . fromJust $ M.lookup "Number Rules" formOptions) (bfsFormControl MsgNumberRules "NumberRules") Nothing
   <* bootstrapSubmit (BootstrapSubmit {
       bsClasses="btn btn-primary center-block",
       bsValue="choose",
@@ -127,8 +129,8 @@ attrOptions attrs = do
                (\(fieldName, atrPred) -> (fieldName, filter (\(_, atr) ->  atrPred atr) . fmap (\atr -> (properAttrName atr, atr)) $ Set.toList attrs))
                [("Result",isASolverResult)
                ,("CPU",isASlowCpuTime)
-               ,("Solver config"
-               ,isAJobResultInfoConfiguration)
+               ,("Solver config",isAJobResultInfoConfiguration)
+               ,("Number Rules",isABenchmarkNumberRules)
                ,("SolverYearName",isAYearSpecificSolverName)]
 
 getConceptURL :: ConceptId -> ComplementIds -> [JobID] -> Handler Text
