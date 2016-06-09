@@ -54,7 +54,7 @@ data App = App
     , dbSem :: Lock.RWLock
     , conSem :: Lock.RWLock
     , doiService :: DOIService
-    , insertBenchmarks :: HandlerT App IO [Key BenchmarkInfo]
+    , insertBenchmarks :: HandlerT App IO ()
     }
 
 instance HasHttpManager App where

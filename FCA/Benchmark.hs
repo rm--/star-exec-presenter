@@ -15,12 +15,12 @@ import Presenter.DOI
 import Presenter.PersistHelper
 import System.FilePath
 import Presenter.StarExec.Commands
-import Data.List (isSuffixOf)
-import Data.Text (pack, stripPrefix, isInfixOf)
+import Data.List (isSuffixOf, stripPrefix)
+import Data.Text (pack, isInfixOf)
 
 -- module to load benchmark information from latest tpdb archive into the database
 
-
+-- perhabs is that the source of strictness:
 insertLatestBenchmarks = insertBenchmarkInfoFromTPDB "TPDB-4d76dd84fd49.zip"
 
 existsBenchmarkInDB :: Int -> Handler Bool
@@ -43,26 +43,23 @@ getNumberOfVariables cursor = length $ Cursor.child cursor >>= Cursor.element "t
                         >>= Cursor.element "var" -- >>= Cursor.child >>= Cursor.element "rule"
 
 
-insertBenchmarkInfoFromTPDB :: FilePath -> HandlerT App IO [Key BenchmarkInfo]
+insertBenchmarkInfoFromTPDB :: FilePath -> HandlerT App IO ()
 insertBenchmarkInfoFromTPDB fPath = do
-
   Just sp <- liftIO $ getDefaultSpaceXML "TPDB-10.3_XML.zip"
 
   let mm = invertMap $ spaceToNames sp
-
   bs <- liftIO $ BSL.readFile fPath
   let benchmarkInfos = fmap
                   (\e -> do
-                    let path = Zip.eRelativePath e
+                    let path = fromJust $ stripPrefix "TPDB-4d76dd84fd49/" $ Zip.eRelativePath e
                     let content = Zip.fromEntry e
-                    let benchmarkId = fromJust $ M.lookup (fromJust $ stripPrefix "TPDB-4d76dd84fd49/" $ pack path) mm
+                    let benchmarkId = fromJust $ M.lookup (pack path) mm
                     let cursor = cursorFromDOM content
                     (pack $ takeFileName path, path, benchmarkId, getNumberOfRules cursor, getNumberOfVariables cursor)) $
                   filter (\ e -> isSuffixOf ".xml" $ Zip.eRelativePath e) $ Zip.zEntries $ Zip.toArchive bs
-
   -- remove this restriction later
-  let srsEntries = filter (\(_,path,_,_,_) -> "SRS_Relative" `isInfixOf` (pack path)) benchmarkInfos
-  let benchmarkInstances = fmap (\(name,_ ,StarExecBenchmarkID bid ,numberOfRules ,_ ) -> createBenchmarkInfo bid name "" numberOfRules) srsEntries
+  -- let srsEntries = filter (\(_,path,_,_,_) -> "SRS_Relative" `isInfixOf` (pack path)) benchmarkInfos
+  let benchmarkInstances = fmap (\(name,_ ,StarExecBenchmarkID bid ,numberOfRules ,_ ) -> createBenchmarkInfo bid name "" numberOfRules) $ take 1  benchmarkInfos
 
   nonExistingBenchmarks <- filterM (\b -> existsBenchmarkInDB $ benchmarkInfoStarExecId b) benchmarkInstances
-  runDB $ insertMany nonExistingBenchmarks
+  runDB $ insertMany_ nonExistingBenchmarks
