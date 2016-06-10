@@ -123,8 +123,8 @@ properAttrName at = case at of
  (AYearSpecificSolverName name)       -> name
  (AJobResultInfoConfiguration config) -> config
  (ABenchmarkNumberRules lowRules)       -> case lowRules of
-                                          Nothing   -> "No Rules"
-                                          Just low  -> if low then "few" else "many"
+                                          Nothing  -> "No Rules"
+                                          Just low -> if low then "< 10 rules" else ">= 10 rules"
  (ASolverResult result) -> case result of
                             YES           -> "YES"
                             NO            -> "NO"
