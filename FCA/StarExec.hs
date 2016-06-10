@@ -14,7 +14,6 @@ import           Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text as T (append, isPrefixOf, null, pack, stripPrefix, take)
 
-
 data Attribute =
   ASolverBasename !Text
    | AJobResultInfoSolver !Text
@@ -22,9 +21,32 @@ data Attribute =
    | AJobResultInfoConfiguration !Text
    | ASlowCpuTime !Bool
    | ASolverResult !SolverResult
-   | ABenchmarkNumberRules !Int
+   | ABenchmarkNumberRules !(Maybe Bool)
   deriving (Eq, Ord, Show)
 
+
+  -- constant: all job pairs with a response cpu time greater 10 seconds is slow
+slowCpuTimeLimit :: (Num Double, Ord Double) => Double
+slowCpuTimeLimit = 10
+
+--
+fewRulesLimit :: (Num Double, Ord Double) => Double
+fewRulesLimit = 10
+
+-- evaluate whether time are slow or not
+evaluateCpuTime :: [JobResultInfo] -> [Bool]
+evaluateCpuTime = fmap ((> slowCpuTimeLimit). jobResultInfoCpuTime)
+
+-- evaluate whether number of rules are few or not
+evaluateNumberOfRules :: [Maybe Benchmark] -> [Maybe Bool]
+evaluateNumberOfRules bms = do
+  -- let limit = lowNumberOfRulesLimit bms
+  let limit = fewRulesLimit
+  fmap (\b ->
+      case b of
+        Nothing -> Nothing
+        Just (StarExecBenchmark bb) -> Just (fromIntegral (benchmarkInfoNumberRules bb) < limit))
+        bms
 
   -- get attribute pairs of given job results
 attributePairs :: [[JobResult]] -> Handler [(JobPairID, [Attribute])]
@@ -33,7 +55,8 @@ attributePairs jobResults = do
   let jobIds = fmap (StarExecJobID . jobResultInfoJobId . head) starExecResults
   competitionYears <- mapM getCompetitionYear jobIds
   benchmarks <- mapM getJobResultBenchmarks starExecResults
-  return . concatMap (\(jr, benchmarks', year) -> collectData (getStarExecResults jr) benchmarks' year) $ zip3 jobResults benchmarks competitionYears
+  let numberOfRules = map evaluateNumberOfRules benchmarks
+  return . concatMap (\(jr, numberOfRules', year) -> collectData (getStarExecResults jr) numberOfRules' year) $ zip3 jobResults numberOfRules competitionYears
 
 -- calculate all possible attribute combination of given attributes
 -- Only attribute combination of different attribute constructor are allowed!
@@ -57,32 +80,26 @@ filterPairsByObjects pairs objs = filter (\(obj,_) -> Set.notMember obj objs) pa
 uniteJobPairAttributes :: [(JobPairID, [Attribute])] -> Set Attribute
 uniteJobPairAttributes pairs = Set.fromList $ concatMap snd pairs
 
--- constant: all job pairs with a response cpu time greater 10 seconds is slow
-slowCpuTimeLimit :: (Num Double, Ord Double) => Double
-slowCpuTimeLimit = 10
-
 -- create relation of JobPairID and declared attributes of given data
-collectData :: [JobResultInfo] -> [Benchmark] -> Text -> [(JobPairID, [Attribute])]
-collectData results benchmarks year = zip (fmap (StarExecPairID . jobResultInfoPairId) results) (getAttributeCollection results benchmarks year)
+collectData :: [JobResultInfo] -> [Maybe Bool] -> Text -> [(JobPairID, [Attribute])]
+collectData results numOfRules year = zip (fmap (StarExecPairID . jobResultInfoPairId) results) (getAttributeCollection results numOfRules year)
 
 -- get all benchmarks from job results
-getJobResultBenchmarks :: [JobResultInfo] -> Handler [Benchmark]
+getJobResultBenchmarks :: [JobResultInfo] -> Handler [Maybe Benchmark]
 getJobResultBenchmarks jobResults = do
   benchmarks <- mapM (\jr -> getPersistBenchmarkInfo $ StarExecBenchmarkID $ jobResultInfoBenchmarkId jr) jobResults
-  return $ catMaybes benchmarks
+  return benchmarks
 
 -- create collection of selected attributes of given data
-getAttributeCollection :: [JobResultInfo] -> [Benchmark] -> Text -> [[Attribute]]
-getAttributeCollection jobResults benchmarks year = do
+getAttributeCollection :: [JobResultInfo] -> [Maybe Bool] -> Text -> [[Attribute]]
+getAttributeCollection jobResults lowRules year = do
   let solverBasenames = fmap (getSolverBasename . jobResultInfoSolver) jobResults
   let yearSpecificSolverNames = fmap (`T.append` year) solverBasenames
   let jobResultInfoSolvers = fmap jobResultInfoSolver jobResults
-  let benchmarkNumberOfRules = map (\(StarExecBenchmark b) -> benchmarkInfoNumberRules b) benchmarks
   let jobResultInfoConfigurations = fmap
                                     (\(jr,name) -> name `append` (dashPrefix $ jobResultInfoConfiguration jr)) $
                                     zip jobResults yearSpecificSolverNames
   let cpuTimeEvaluations = evaluateCpuTime jobResults
-  -- let evaluatedNumberOfRules = evaluateNumberOfRules 
   let jobResultInfoResults = fmap jobResultInfoResult jobResults
   zipWith7
     (\a b c d e f g -> [
@@ -94,21 +111,20 @@ getAttributeCollection jobResults benchmarks year = do
       ASolverResult f,
       ABenchmarkNumberRules g
     ])
-    jobResultInfoSolvers solverBasenames yearSpecificSolverNames jobResultInfoConfigurations cpuTimeEvaluations jobResultInfoResults benchmarkNumberOfRules
+    jobResultInfoSolvers solverBasenames yearSpecificSolverNames jobResultInfoConfigurations cpuTimeEvaluations jobResultInfoResults lowRules
 
--- evaluate whether time are slow or not
-evaluateCpuTime :: [JobResultInfo] -> [Bool]
-evaluateCpuTime = fmap ((> slowCpuTimeLimit). jobResultInfoCpuTime)
 
 -- proper names for attributes in template
 properAttrName :: Attribute -> Text
 properAttrName at = case at of
- (ASlowCpuTime slow)                  -> if slow then "CPU time > 10s" else "CPU time <= 10s"
+ (ASlowCpuTime slow)                  -> if slow then "time > 10s" else "time <= 10s"
  (AJobResultInfoSolver name)          -> name
  (ASolverBasename name)               -> name
  (AYearSpecificSolverName name)       -> name
  (AJobResultInfoConfiguration config) -> config
- (ABenchmarkNumberRules number)       -> T.append "Rules " $ T.pack $ show number
+ (ABenchmarkNumberRules lowRules)       -> case lowRules of
+                                          Nothing   -> "No Rules"
+                                          Just low  -> if low then "few" else "many"
  (ASolverResult result) -> case result of
                             YES           -> "YES"
                             NO            -> "NO"
