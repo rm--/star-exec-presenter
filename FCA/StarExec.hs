@@ -12,7 +12,7 @@ import Data.Maybe
 import Data.List hiding (isPrefixOf, stripPrefix)
 import           Data.Set (Set)
 import qualified Data.Set as Set
-import Data.Text as T (append, isPrefixOf, null, pack, stripPrefix, take)
+import Data.Text as T (append, null, pack, take)
 
 data Attribute =
   ASolverBasename !Text
@@ -133,15 +133,6 @@ properAttrName at = case at of
                             CERTIFIED     -> "CERTIFIED"
                             ERROR         -> "ERROR"
                             (OTHER text)  -> T.append "OTHER " text
-stripAttributePrefixes :: Text -> Text
-stripAttributePrefixes at
-  | "Result " `T.isPrefixOf` at = fromJust $ T.stripPrefix "Result " at
-  | "Solver config " `isPrefixOf` at = fromJust $ T.stripPrefix "Solver config " at
-  | "Solver basename " `T.isPrefixOf` at = fromJust $ T.stripPrefix "Solver basename " at
-  | "SolverYearName " `T.isPrefixOf` at = fromJust $ T.stripPrefix "SolverYearName " at
-  | "Solver name " `T.isPrefixOf` at = fromJust $ T.stripPrefix "Solver name " at
-  | "CPU " `T.isPrefixOf` at = fromJust $ T.stripPrefix "CPU " at
-  | otherwise = at
 
 
 -- create all attribute combinations from existing attributes without duplicates
