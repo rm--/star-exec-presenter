@@ -22,7 +22,7 @@ create-db:
 
 
 install:
-	stack setup
+	stack setup --no-system-ghc
 	stack build yesod-bin --verbosity silent
 	stack build --verbosity silent
 
