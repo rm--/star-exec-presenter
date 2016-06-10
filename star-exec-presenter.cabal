@@ -204,6 +204,7 @@ library
                  , begriff
                  , tpdb
                  , filepath
+                 , tpdb
 
 executable         star-exec-presenter
     if flag(library-only)

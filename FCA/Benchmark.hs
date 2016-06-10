@@ -1,7 +1,7 @@
 module FCA.Benchmark where
 
 import FCA.Helpers
-import Import
+import Import hiding (get)
 
 import Control.Monad
 -- import           Data.Map.Strict (Map)
@@ -17,7 +17,10 @@ import System.FilePath
 import Presenter.StarExec.Commands
 import Data.List (isSuffixOf, stripPrefix)
 import Data.Text (pack, isInfixOf)
-
+import TPDB.Input.Memory
+import TPDB.Data
+import TPDB.Data.Attributes
+import Data.Either
 -- module to load benchmark information from latest tpdb archive into the database
 
 -- perhabs is that the source of strictness:
@@ -49,6 +52,24 @@ insertBenchmarkInfoFromTPDB fPath = do
 
   let mm = invertMap $ spaceToNames sp
   bs <- liftIO $ BSL.readFile fPath
+
+  let xmlEntries = take 5 $ fmap (\e -> do
+                             let path = fromJust $ stripPrefix "TPDB-4d76dd84fd49/" $ Zip.eRelativePath e
+                             let content = Zip.fromEntry e
+                             (takeFileName path, path, content)
+                            ) $
+                            filter (\ e -> isSuffixOf ".xml" $ Zip.eRelativePath e) $ Zip.zEntries $ Zip.toArchive bs
+
+
+  -- FIXME: add filtering: calculate for benchmarks that aren't in the database yet
+  -- FIXME: add doi handling
+
+  tpdbInstances <- mapM liftIO $ map (\(fn, _, content) -> get fn content) xmlEntries
+
+  -- only for trs instances atm
+  let trsRules = fmap (rules) $ lefts $ rights tpdbInstances
+  let numberOfRulesAttrs = fmap length trsRules
+  let leftLinearAttrs = fmap (left_linear . compute_attributes) trsRules
   let benchmarkInfos = fmap
                   (\e -> do
                     let path = fromJust $ stripPrefix "TPDB-4d76dd84fd49/" $ Zip.eRelativePath e
