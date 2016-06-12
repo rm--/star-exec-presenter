@@ -17,6 +17,7 @@ import qualified Data.Map.Strict as M
 import           Data.Set (Set)
 import qualified Data.Set as Set
 import Text.Lucius (luciusFile)
+import Text.Julius (juliusFile)
 import Yesod.Form.Bootstrap3
 import Data.List (sortOn)
 
@@ -90,6 +91,7 @@ getConceptsR cid compls@(Ids complIds) jids@(JobIds ids) = do
   defaultLayout $ do
     -- when (any (\q' -> queryStatus q' /= Latest) qJobs ) insertWidgetMetaRefresh
     toWidget $(luciusFile "templates/solver_result.lucius")
+    toWidget $(juliusFile "templates/concepts.julius")
     setTitle "concepts"
     -- case implications of
     --   Nothing -> return ()
