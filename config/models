@@ -146,6 +146,7 @@ BenchmarkInfo
     name Text
     type Text
     numberRules Int
+    leftLinear Bool Maybe
     lastUpdate UTCTime default=now()
     deriving Eq Ord Read Show
 

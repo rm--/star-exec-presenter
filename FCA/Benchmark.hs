@@ -33,7 +33,7 @@ doesNotExistsBenchmarkInDB bid = do
     Just _  -> return False
 
 -- create benchmarkinfo instances from given data
-createBenchmarkInfo :: Int -> Text -> Text -> Int -> Bool -> BenchmarkInfo
+createBenchmarkInfo :: Int -> Text -> Text -> Int -> Maybe Bool -> BenchmarkInfo
 createBenchmarkInfo bid bName type' numberOfRules leftLinear = BenchmarkInfo bid bName type' numberOfRules leftLinear defaultDate
 
 -- insert benchmark instances from tpdb zip
@@ -64,6 +64,6 @@ insertBenchmarkInfoFromTPDB fPath = do
 
   -- FIXME: remove use of take
   let benchmarkInstances = fmap
-                          (\(fn, _, _ , StarExecBenchmarkID bid, numberOfRules, leftLinear)  -> createBenchmarkInfo bid (pack fn) "" numberOfRules leftLinear) $
+                          (\(fn, _, _ , StarExecBenchmarkID bid, numberOfRules, leftLinear)  -> createBenchmarkInfo bid (pack fn) "" numberOfRules (Just leftLinear)) $
                           take 8000 benchmarkData
   runDB $ insertMany_ benchmarkInstances

@@ -67,6 +67,9 @@ defaultDate = UTCTime
 defaultNumberRules :: Int
 defaultNumberRules = 0
 
+defaultLeftLinar :: Maybe Bool
+defaultLeftLinar = Nothing
+
 (+>) :: BSC.ByteString -> BSC.ByteString -> BSC.ByteString
 (+>) = BS.append
 
@@ -151,6 +154,7 @@ constructBenchmarkInfo _benchmarkId title tds =
                                         title
                                         ""
                                         defaultNumberRules
+                                        defaultLeftLinar
                                         defaultDate
       parseTDs info xs =
         case xs of
