@@ -1,3 +1,4 @@
+{-# language DoAndIfThenElse #-}
 module FCA.Benchmark where
 
 import FCA.Helpers
@@ -14,7 +15,7 @@ import Presenter.PersistHelper
 import System.FilePath
 import Presenter.StarExec.Commands
 import Data.List (isSuffixOf, stripPrefix)
-import Data.Text (pack)
+import Data.Text (append, pack)
 import TPDB.Input.Memory
 import TPDB.Data
 import TPDB.Data.Attributes
@@ -52,18 +53,18 @@ insertBenchmarkInfoFromTPDB fPath = do
                              filter (\ e -> isSuffixOf ".xml" $ Zip.eRelativePath e) $ Zip.zEntries $ Zip.toArchive bs
 
   nonExistingBenchmarks <- filterM (\(_, _, _, StarExecBenchmarkID bid) -> doesNotExistsBenchmarkInDB $ bid) xmlEntries
-
-  -- FIXME: add doi handling
-  tpdbInstances <- mapM liftIO $ map (\(fn, _, content, _) -> get fn content) nonExistingBenchmarks
-
-  -- only for trs instances atm
-  let trsRules = fmap (rules) . lefts $ rights tpdbInstances
-  let numberOfRulesAttrs = fmap length trsRules
-  let leftLinearAttrs = fmap (left_linear . compute_attributes) trsRules
-  let benchmarkData = zipWith3 (\(t1,t2,t3,t4) r l -> (t1,t2,t3,t4,r,l)) nonExistingBenchmarks numberOfRulesAttrs leftLinearAttrs
-
-  -- FIXME: remove use of take
-  let benchmarkInstances = fmap
-                          (\(fn, _, _ , StarExecBenchmarkID bid, numberOfRules, leftLinear)  -> createBenchmarkInfo bid (pack fn) "" numberOfRules (Just leftLinear)) $
-                          take 8000 benchmarkData
-  runDB $ insertMany_ benchmarkInstances
+  if (not (null nonExistingBenchmarks))
+    then do
+      tpdbInstances <- mapM liftIO $ map (\(fn, _, content, _) -> get fn content) nonExistingBenchmarks
+      -- FIXME: add doi handling
+      -- only for trs instances atm
+      let trsRules = fmap (rules) . lefts $ rights tpdbInstances
+      let numberOfRulesAttrs = fmap length trsRules
+      let leftLinearAttrs = fmap (left_linear . compute_attributes) trsRules
+      let benchmarkData = zipWith3 (\(t1,t2,t3,t4) r l -> (t1,t2,t3,t4,r,l)) nonExistingBenchmarks numberOfRulesAttrs leftLinearAttrs
+      let benchmarkInstances = fmap
+                               (\(fn, _, _ , StarExecBenchmarkID bid, numberOfRules, leftLinear)  -> createBenchmarkInfo bid (pack fn) "" numberOfRules (Just leftLinear)) $
+                               benchmarkData
+      runDB $ insertMany_ benchmarkInstances
+      $(logInfo) $ append (pack . show $ length benchmarkInstances) " benchmarks imported."
+  else $(logInfo) $ pack "Nothing to import."
