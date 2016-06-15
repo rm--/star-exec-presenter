@@ -15,14 +15,13 @@ $maybe _ <- concepts'
   $if (not . null) complIds
     The following concepts are excluded (<a href=#{resetComplURL}>reset them</a>):<pre>#{show complIds}</pre>
   $if (not . null) currObjects
-    <section>
-      <div class="panzoom" height="900">
+    <section id="inverted-contain">
+      <div class="panzoom-parent" height="200">
         #{svgContent}
       <div class="buttons">
-        <button class="zoom-in">Zoom In</button>
-        <button class="zoom-out">Zoom Out</button>
-        <input type="range" class="zoom-range">
-        <button class="reset">Reset</button>
-      <script>
+       <button class="zoom-in">Zoom In</button>
+       <button class="zoom-out">Zoom Out</button>
+       <input type="range" class="zoom-range">
+       <button class="reset">Reset</button>
 $nothing
   <h3>No matching cells found.
