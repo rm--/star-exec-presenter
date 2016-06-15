@@ -98,22 +98,20 @@ instance Yesod App where
 
         -- navigation bar elements
         let menuElements = [MenuEntry ("Home", HomeR)
-                           , MenuDropdown
-                           ("Competition Results"
-                           , [MenuEntry ("2015", ListCompetitionsR)
-                           , MenuEntry ("2014", ListCompetitionsR)
+                           , MenuDropdown ("Competitions"
+                             , [MenuEntry ("2015", ListCompetitionsR)
+                             , MenuEntry ("2014", ListCompetitionsR)
                            ])
-                           , MenuDropdown
-                           ("Analysis"
-                           , [MenuEntry ("Concepts example", ConceptsR 0 (Ids []) (JobIds [StarExecJobID 9515, StarExecJobID 10299]))
+                           , MenuDropdown ("Analysis"
+                             , [MenuEntry ("TRS Standard 2015", ConceptsR 0 (Ids []) (JobIds [StarExecJobID 10257]))
+                             , MenuEntry ("TRS Standard 2014", ConceptsR 0 (Ids []) (JobIds [StarExecJobID 5373]))
+                             , MenuEntry ("Example many jobs", ConceptsR 0 (Ids []) (JobIds [StarExecJobID 9515, StarExecJobID 10299]))
                            ])
-                           , MenuDropdown
-                               ("StarExec Interaction"
-                               , [MenuEntry ("Import", ImportR)
-                               , MenuEntry ("Install Solver", InstallSolversR Y2015)
-                               , MenuEntry ("Job Control", ControlR Y2015)
-                             ])
-                           ]
+                           , MenuDropdown ("StarExec Interaction"
+                             , [MenuEntry ("Import", ImportR)
+                             , MenuEntry ("Install Solver", InstallSolversR Y2015)
+                             , MenuEntry ("Job Control", ControlR Y2015)
+                           ])]
 
         pc <- widgetToPageContent $ do
             $(combineStylesheets 'StaticR
