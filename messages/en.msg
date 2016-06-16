@@ -5,3 +5,4 @@ SolverConfigs: Solver configs
 Results: Results
 CPUTimes: CPU times
 NumberRules: Number Rules
+LeftLinears: Left Linear

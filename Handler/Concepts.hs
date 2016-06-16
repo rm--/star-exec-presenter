@@ -27,6 +27,7 @@ data AttributeChoices = AttributeChoices
   , chosenCpu :: Maybe [Attribute]
   , chosenConfig :: Maybe [Attribute]
   , chosenRules :: Maybe [Attribute]
+  , chosenLeftlinears :: Maybe [Attribute]
   }
   deriving (Eq, Show)
 
@@ -46,7 +47,7 @@ getConceptsR cid compls@(Ids complIds) jids@(JobIds ids) = do
         FormSuccess ca -> do
           let chosenAttributes = filter (not . null) .
                                    (++) [chosenSolver ca] $
-                                   map (\f -> maybeListId .f $ ca) [chosenResults, chosenCpu, chosenConfig, chosenRules]
+                                   map (\f -> maybeListId .f $ ca) [chosenResults, chosenCpu, chosenConfig, chosenRules, chosenLeftlinears]
           case filterPairsByAttributes attributePairs' $ attributeGroupCombinations chosenAttributes of
             Nothing -> Nothing
             Just pairs -> 
@@ -114,6 +115,7 @@ attributeForm formOptions = AttributeChoices
   <*> aopt (multiSelectFieldList . fromJust $ M.lookup "Result" formOptions) (bfsFormControl MsgResults "Results") Nothing
   <*> aopt (multiSelectFieldList . fromJust $ M.lookup "CPU" formOptions) (bfsFormControl MsgCPUTimes "CPUTimes") Nothing
   <*> aopt (multiSelectFieldList . fromJust $ M.lookup "Number Rules" formOptions) (bfsFormControl MsgNumberRules "NumberRules") Nothing
+  <*> aopt (multiSelectFieldList . fromJust $ M.lookup "Left Linears" formOptions) (bfsFormControl MsgLeftLinears "LeftLinears") Nothing
   <* bootstrapSubmit (BootstrapSubmit {
       bsClasses="btn btn-primary center-block",
       bsValue="choose",
@@ -131,6 +133,7 @@ attrOptions attrs = do
                ,("CPU",isASlowCpuTime)
                ,("Solver config",isAJobResultInfoConfiguration)
                ,("Number Rules",isABenchmarkNumberRules)
+               ,("Left Linears",isABenchmarkLeftLinear)
                ,("SolverYearName",isAYearSpecificSolverName)]
 
 getConceptURL :: ConceptId -> ComplementIds -> [JobID] -> Handler Text

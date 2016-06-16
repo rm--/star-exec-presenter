@@ -44,7 +44,6 @@ safeGetIndex xs k = case drop k xs of
 invertMap :: (Ord a, Ord b) => Map a b -> Map b a
 invertMap m = M.fromList . map (\(k,v) -> (v,k)) $ M.assocs m
 
-
 zipWith8 :: (a->b->c->d->e->f->g->h->i) -> [a]->[b]->[c]->[d]->[e]->[f]->[g]->[h]->[i]
 zipWith8 z (a:as) (b:bs) (c:cs) (d:ds) (e:es) (f:fs) (g:gs) (i:is)
                    =  z a b c d e f g i : zipWith8 z as bs cs ds es fs gs is
