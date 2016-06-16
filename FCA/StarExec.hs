@@ -22,6 +22,7 @@ data Attribute =
    | ASlowCpuTime !Bool
    | ASolverResult !SolverResult
    | ABenchmarkNumberRules !(Maybe Bool)
+   | ABenchmarkLeftLinear !(Maybe Bool)
   deriving (Eq, Ord, Show)
 
 
@@ -48,6 +49,15 @@ evaluateNumberOfRules bms = do
         Just (StarExecBenchmark bb) -> Just (fromIntegral (benchmarkInfoNumberRules bb) < limit))
         bms
 
+getLeftLinear :: [Maybe Benchmark] -> [Maybe Bool]
+getLeftLinear bms = do
+  fmap (\b ->
+      case b of
+        Nothing -> Nothing
+        Just (StarExecBenchmark bb) -> benchmarkInfoLeftLinear bb)
+        bms
+
+
   -- get attribute pairs of given job results
 attributePairs :: [[JobResult]] -> Handler [(JobPairID, [Attribute])]
 attributePairs jobResults = do
@@ -55,8 +65,9 @@ attributePairs jobResults = do
   let jobIds = fmap (StarExecJobID . jobResultInfoJobId . head) starExecResults
   competitionYears <- mapM getCompetitionYear jobIds
   benchmarks <- mapM getJobResultBenchmarks starExecResults
-  let numberOfRules = map evaluateNumberOfRules benchmarks
-  return . concatMap (\(jr, numberOfRules', year) -> collectData (getStarExecResults jr) numberOfRules' year) $ zip3 jobResults numberOfRules competitionYears
+  let numberOfRules = fmap evaluateNumberOfRules benchmarks
+  let leftLinears = fmap getLeftLinear benchmarks
+  return . concatMap (\(jr, numberOfRules', leftlinears', year) -> collectData (getStarExecResults jr) numberOfRules' leftlinears' year) $ zip4 jobResults numberOfRules leftLinears competitionYears
 
 -- calculate all possible attribute combination of given attributes
 -- Only attribute combination of different attribute constructor are allowed!
@@ -81,8 +92,8 @@ uniteJobPairAttributes :: [(JobPairID, [Attribute])] -> Set Attribute
 uniteJobPairAttributes pairs = Set.fromList $ concatMap snd pairs
 
 -- create relation of JobPairID and declared attributes of given data
-collectData :: [JobResultInfo] -> [Maybe Bool] -> Text -> [(JobPairID, [Attribute])]
-collectData results numOfRules year = zip (fmap (StarExecPairID . jobResultInfoPairId) results) (getAttributeCollection results numOfRules year)
+collectData :: [JobResultInfo] -> [Maybe Bool] -> [Maybe Bool] -> Text -> [(JobPairID, [Attribute])]
+collectData results numOfRules leftLinears year = zip (fmap (StarExecPairID . jobResultInfoPairId) results) (getAttributeCollection results numOfRules leftLinears year)
 
 -- get all benchmarks from job results
 getJobResultBenchmarks :: [JobResultInfo] -> Handler [Maybe Benchmark]
@@ -91,8 +102,8 @@ getJobResultBenchmarks jobResults = do
   return benchmarks
 
 -- create collection of selected attributes of given data
-getAttributeCollection :: [JobResultInfo] -> [Maybe Bool] -> Text -> [[Attribute]]
-getAttributeCollection jobResults lowRules year = do
+getAttributeCollection :: [JobResultInfo] -> [Maybe Bool] -> [Maybe Bool] -> Text -> [[Attribute]]
+getAttributeCollection jobResults lowRules leftLinears year = do
   let solverBasenames = fmap (getSolverBasename . jobResultInfoSolver) jobResults
   let yearSpecificSolverNames = fmap (`T.append` year) solverBasenames
   let jobResultInfoSolvers = fmap jobResultInfoSolver jobResults
@@ -101,17 +112,18 @@ getAttributeCollection jobResults lowRules year = do
                                     zip jobResults yearSpecificSolverNames
   let cpuTimeEvaluations = evaluateCpuTime jobResults
   let jobResultInfoResults = fmap jobResultInfoResult jobResults
-  zipWith7
-    (\a b c d e f g -> [
+  zipWith8
+    (\a b c d e f g i -> [
       AJobResultInfoSolver a,
       ASolverBasename b,
       AYearSpecificSolverName c,
       AJobResultInfoConfiguration d,
       ASlowCpuTime e,
       ASolverResult f,
-      ABenchmarkNumberRules g
+      ABenchmarkNumberRules g,
+      ABenchmarkLeftLinear i
     ])
-    jobResultInfoSolvers solverBasenames yearSpecificSolverNames jobResultInfoConfigurations cpuTimeEvaluations jobResultInfoResults lowRules
+    jobResultInfoSolvers solverBasenames yearSpecificSolverNames jobResultInfoConfigurations cpuTimeEvaluations jobResultInfoResults lowRules leftLinears
 
 
 -- proper names for attributes in template
@@ -122,8 +134,12 @@ properAttrName at = case at of
  (ASolverBasename name)               -> name
  (AYearSpecificSolverName name)       -> name
  (AJobResultInfoConfiguration config) -> config
+ (ABenchmarkLeftLinear ll)             -> case ll of
+                                          Nothing  -> "No left linear."
+                                          Just l   -> T.pack $ show l
+
  (ABenchmarkNumberRules lowRules)       -> case lowRules of
-                                          Nothing  -> "No Rules"
+                                          Nothing  -> "No Rules."
                                           Just low -> if low then "< 10 rules" else ">= 10 rules"
  (ASolverResult result) -> case result of
                             YES           -> "YES"
@@ -182,6 +198,11 @@ isAJobResultInfoConfiguration at = case at of
 isAYearSpecificSolverName :: Attribute -> Bool
 isAYearSpecificSolverName at = case at of
   AYearSpecificSolverName _  -> True
+  _                          -> False
+
+isABenchmarkLeftLinear :: Attribute -> Bool
+isABenchmarkLeftLinear at = case at of
+  ABenchmarkLeftLinear _     -> True
   _                          -> False
 
 -- recursive function to calculate concepts list and reduce attribute pairs
