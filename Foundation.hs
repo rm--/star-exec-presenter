@@ -97,7 +97,11 @@ instance Yesod App where
         -- value passed to hamletToRepHtml cannot be a widget, this allows
         -- you to use normal widget features in default-layout.
 
-        insertedBenchmarks <- insertBenchmarks master
+        -- the result of this line is that in every request it is called.
+        -- it should be possible to do the benchmark insertion once before APP instantiation
+        -- that call should be in Application.hs
+        -- Problem: use Handler monad in IO
+        -- insertedBenchmarks <- insertBenchmarks master
 
         -- navigation bar elements
         let menuElements = [MenuEntry ("Home", HomeR)
