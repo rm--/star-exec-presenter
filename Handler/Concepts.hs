@@ -50,7 +50,7 @@ getConceptsR cid compls@(Ids complIds) jids@(JobIds ids) = do
                                    map (\f -> maybeListId .f $ ca) [chosenResults, chosenCpu, chosenConfig, chosenRules, chosenLeftlinears]
           case filterPairsByAttributes attributePairs' $ attributeGroupCombinations chosenAttributes of
             Nothing -> Nothing
-            Just pairs -> 
+            Just pairs ->
               let ctx = contextFromList . reducePairsByComplements pairs $ Ids complIds
                   lat = FCA.lattice $ FCA.einpack ctx
               in  Just ( map (auspack . fst) lat , FCA.implications lat )
@@ -91,19 +91,19 @@ getConceptsR cid compls@(Ids complIds) jids@(JobIds ids) = do
     -- when (any (\q' -> queryStatus q' /= Latest) qJobs ) insertWidgetMetaRefresh
     toWidget $(luciusFile "templates/solver_result.lucius")
     setTitle "concepts"
-    case implications of
-      Nothing -> return ()
-      Just imps -> do
-        let fst3 (x,y,z) = x
-            att_size conc = Set.size $ FCA.ats $ auspack conc
-            obj_size conc = Set.size $ FCA.obs $ auspack conc
-            imps' = sortOn (att_size . fst3) $ filter ((>0) . att_size . fst3 ) imps
-        [whamlet|$forall (conc,at,atts) <- imps'
-             <pre>
-                for #{show $ obj_size conc} objects with attributes #{show $ FCA.ats $ auspack conc},
-                attribute #{show at}
-                implies attributes #{show atts}
-        |]
+    -- case implications of
+    --   Nothing -> return ()
+    --   Just imps -> do
+    --     let fst3 (x,y,z) = x
+    --         att_size conc = Set.size $ FCA.ats $ auspack conc
+    --         obj_size conc = Set.size $ FCA.obs $ auspack conc
+    --         imps' = sortOn (att_size . fst3) $ filter ((>0) . att_size . fst3 ) imps
+    --     [whamlet|$forall (conc,at,atts) <- imps'
+    --          <pre>
+    --             for #{show $ obj_size conc} objects with attributes #{show $ FCA.ats $ auspack conc},
+    --             attribute #{show at}
+    --             implies attributes #{show atts}
+    --     |]
     $(widgetFile "concepts")
     unless (null currObjects) $ displayConcept jids tab
 
