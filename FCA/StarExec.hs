@@ -135,8 +135,8 @@ properAttrName at = case at of
  (AYearSpecificSolverName name)       -> name
  (AJobResultInfoConfiguration config) -> config
  (ABenchmarkLeftLinear ll)             -> case ll of
-                                          Nothing  -> "No left linear."
-                                          Just l   -> T.pack $ show l
+                                          Nothing -> "No left linear."
+                                          Just l  -> if l then "left linear" else "not left linear"
 
  (ABenchmarkNumberRules lowRules)       -> case lowRules of
                                           Nothing  -> "No Rules."
