@@ -81,7 +81,7 @@
   bottom: 0px;
   top: 0px;
   float: left;
-  width: 50%;
+  width: 33%;
   min-height: 1px;
   padding-left: 15px;
   padding-right: 15px;
