@@ -16,7 +16,7 @@ $maybe _ <- concepts'
     The following concepts are excluded (<a href=#{resetComplURL}>reset them</a>):<pre>#{show complIds}</pre>
   $if (not . null) currObjects
     <section id="inverted-contain">
-      <div class="panzoom-parent" height="200">
+      <div class="panzoom-parent">
         #{svgContent}
       <div class="buttons">
        <button class="zoom-in">Zoom In</button>
