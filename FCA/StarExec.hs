@@ -61,13 +61,16 @@ getLeftLinear bms = do
   -- get attribute pairs of given job results
 attributePairs :: [[JobResult]] -> Handler [(JobPairID, [Attribute])]
 attributePairs jobResults = do
-  let starExecResults = fmap getStarExecResults jobResults
-  let jobIds = fmap (StarExecJobID . jobResultInfoJobId . head) starExecResults
-  competitionYears <- mapM getCompetitionYear jobIds
-  benchmarks <- mapM getJobResultBenchmarks starExecResults
-  let numberOfRules = fmap evaluateNumberOfRules benchmarks
-  let leftLinears = fmap getLeftLinear benchmarks
-  return . concatMap (\(jr, numberOfRules', leftlinears', year) -> collectData (getStarExecResults jr) numberOfRules' leftlinears' year) $ zip4 jobResults numberOfRules leftLinears competitionYears
+  case jobResults of
+    [[]] -> return []
+    _    -> do
+      let starExecResults = fmap getStarExecResults jobResults
+      let jobIds = fmap (StarExecJobID . jobResultInfoJobId . head) starExecResults
+      competitionYears <- mapM getCompetitionYear jobIds
+      benchmarks <- mapM getJobResultBenchmarks starExecResults
+      let numberOfRules = fmap evaluateNumberOfRules benchmarks
+      let leftLinears = fmap getLeftLinear benchmarks
+      return . concatMap (\(jr, numberOfRules', leftlinears', year) -> collectData (getStarExecResults jr) numberOfRules' leftlinears' year) $ zip4 jobResults numberOfRules leftLinears competitionYears
 
 -- calculate all possible attribute combination of given attributes
 -- Only attribute combination of different attribute constructor are allowed!
