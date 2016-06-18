@@ -9,8 +9,6 @@ $("a.panzoom-elements").panzoom({
 (function() {
   var $section = $('#inverted-contain');
   $section.find('svg').panzoom({
-    $zoomIn: $section.find(".zoom-in"),
-    $zoomOut: $section.find(".zoom-out"),
     $zoomRange: $section.find(".zoom-range"),
     $reset: $section.find(".reset"),
     startTransform: 'scale(1)',
