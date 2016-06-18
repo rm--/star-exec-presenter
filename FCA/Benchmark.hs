@@ -55,6 +55,7 @@ insertBenchmarkInfoFromTPDB fPath = do
   nonExistingBenchmarks <- filterM (\(_, _, _, StarExecBenchmarkID bid) -> doesNotExistsBenchmarkInDB $ bid) xmlEntries
   if (not (null nonExistingBenchmarks))
     then do
+      $(logInfo) $ pack "Benchmark import started. That can take some minutes."
       tpdbInstances <- mapM liftIO $ map (\(fn, _, content, _) -> get fn content) nonExistingBenchmarks
       -- FIXME: add doi handling
       -- only for trs instances atm
