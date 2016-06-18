@@ -7,7 +7,7 @@ import FCA.DotGraph (renderConceptSVG)
 import FCA.Helpers
 import Import
 import Presenter.StarExec.JobData
--- import Presenter.Utils.WidgetMetaRefresh (insertWidgetMetaRefresh)
+import Presenter.Utils.WidgetMetaRefresh (insertWidgetMetaRefresh)
 import Presenter.Utils.WidgetTable
 
 import Control.Monad
@@ -89,7 +89,7 @@ getConceptsR cid compls@(Ids complIds) jids@(JobIds ids) = do
   currURL <- getConceptURL cid compls ids
   resetComplURL <- getConceptURL 0 (Ids []) ids
   defaultLayout $ do
-    -- when (any (\q' -> queryStatus q' /= Latest) qJobs ) insertWidgetMetaRefresh
+    when (any (\q' -> queryStatus q' /= Latest) qJobs ) insertWidgetMetaRefresh
     toWidget $(luciusFile "templates/solver_result.lucius")
     toWidget $(juliusFile "templates/concepts.julius")
     setTitle "concepts"
