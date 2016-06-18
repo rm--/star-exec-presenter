@@ -109,15 +109,15 @@ getAttributeCollection :: [JobResultInfo] -> [Maybe Bool] -> [Maybe Bool] -> Tex
 getAttributeCollection jobResults lowRules leftLinears year = do
   let solverBasenames = fmap (getSolverBasename . jobResultInfoSolver) jobResults
   let yearSpecificSolverNames = fmap (`T.append` year) solverBasenames
-  let jobResultInfoSolvers = fmap jobResultInfoSolver jobResults
+  -- let jobResultInfoSolvers = fmap jobResultInfoSolver jobResults
   let jobResultInfoConfigurations = fmap
                                     (\(jr,name) -> name `append` (dashPrefix $ jobResultInfoConfiguration jr)) $
                                     zip jobResults yearSpecificSolverNames
   let cpuTimeEvaluations = evaluateCpuTime jobResults
   let jobResultInfoResults = fmap jobResultInfoResult jobResults
-  zipWith8
-    (\a b c d e f g i -> [
-      AJobResultInfoSolver a,
+  zipWith7
+    (\b c d e f g i -> [
+      -- AJobResultInfoSolver a,
       ASolverBasename b,
       AYearSpecificSolverName c,
       AJobResultInfoConfiguration d,
@@ -126,8 +126,8 @@ getAttributeCollection jobResults lowRules leftLinears year = do
       ABenchmarkNumberRules g,
       ABenchmarkLeftLinear i
     ])
-    jobResultInfoSolvers solverBasenames yearSpecificSolverNames jobResultInfoConfigurations cpuTimeEvaluations jobResultInfoResults lowRules leftLinears
-
+    solverBasenames yearSpecificSolverNames jobResultInfoConfigurations cpuTimeEvaluations jobResultInfoResults lowRules leftLinears
+    -- jobResultInfoSolvers
 
 -- proper names for attributes in template
 properAttrName :: Attribute -> Text
