@@ -2,7 +2,6 @@ $(".panzoom-elements").panzoom();
 
 // Pass options
 $("a.panzoom-elements").panzoom({
-  minScale: 0,
   $zoomRange: $("input[type='range']")
 });
 
@@ -18,5 +17,5 @@ $("a.panzoom-elements").panzoom({
     increment: 0.1,
     minScale: 1,
     contain: 'invert'
-  }).panzoom('zoom');
+  })
 })();
